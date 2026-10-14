@@ -67,8 +67,8 @@ func (r Request) Validate() error {
 
 // Result is what an adapter produced for one call.
 type Result struct {
-	// Provider names the engine that produced the segments, so a transcript
-	// always says where its text came from.
+	// Provider names the engine that produced the segments, so a caller can
+	// report where the text came from instead of implying it came from a model.
 	Provider string
 	// Segments are the engine's segments, in the order the engine produced
 	// them, with only the documented stable-id rule applied.

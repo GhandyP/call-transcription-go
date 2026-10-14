@@ -1,0 +1,30 @@
+{
+  "callID": "call-4417",
+  "audioRef": "s3://recordings/2026/call-4417.wav",
+  "segments": [
+    {
+      "id": "s1",
+      "speaker": "Customer",
+      "start": 0,
+      "end": 6,
+      "text": "I need to change my plan before the next bill.",
+      "confidence": 0.94
+    },
+    {
+      "id": "s2",
+      "speaker": "Agent",
+      "start": 5.5,
+      "end": 12,
+      "text": "Let me pull up your account.",
+      "confidence": 0.91
+    },
+    {
+      "id": "s3",
+      "speaker": "?",
+      "start": 12,
+      "end": 15,
+      "text": "Thanks, that helps.",
+      "confidence": 0.88
+    }
+  ]
+}

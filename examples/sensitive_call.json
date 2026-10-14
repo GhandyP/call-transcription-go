@@ -1,0 +1,30 @@
+{
+  "callID": "call-4418",
+  "audioRef": "s3://recordings/2026/call-4418.wav",
+  "segments": [
+    {
+      "id": "s1",
+      "speaker": "Customer",
+      "start": 0,
+      "end": 6,
+      "text": "My email is ana.perez@example.com and my card is 4111 1111 1111 1111.",
+      "confidence": 0.92
+    },
+    {
+      "id": "s2",
+      "speaker": "Agent",
+      "start": 6,
+      "end": 10,
+      "text": "I have noted the reference you gave me.",
+      "confidence": 0.9
+    },
+    {
+      "id": "s3",
+      "speaker": "Customer",
+      "start": 45,
+      "end": 49,
+      "text": "This whole process is shit, honestly.",
+      "confidence": 0.4
+    }
+  ]
+}
