@@ -1,0 +1,10 @@
+# Compiled command
+/call-transcription-go
+
+# Go build, test and coverage output
+*.test
+*.out
+coverage.txt
+
+# Local scratch space
+/scratch/

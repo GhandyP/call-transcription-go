@@ -1,0 +1,48 @@
+# call-transcription-go
+
+Objective: publish a from-scratch public GitHub portfolio repository that cleans and validates call transcript segments with Google ADK Go (v2), then continue building it under ODD.
+Local path: `/home/ghandy/Documents/34-call-transcription` (module `github.com/GhandyP/call-transcription-go`).
+Source plan: the legacy case README (case 34 of the author's ADK cookbook), preserved verbatim at `.legacy-prototype/README.legacy.md`.
+Delivery strategy: bounded work-unit commits pushed to `main` of a new single-author repository (no PR flow exists); each unit stays under the ~400-authored-line heuristic.
+Test runner: `gofmt -l .`, `go vet ./...`, `go build ./...`, `go test ./... -count=1`.
+
+## Specs
+
+- S1 (repo): Public GitHub repository named `call-transcription-go` under the user's account `GhandyP`, created as a new repository inside the user's portfolio. User's exact words: "crea un repo publico que la idea es hacerlo desde el inicio pero para que sea un repo dentro de mi portafolio en github".
+- S2 (stack): Build the repository from scratch with Go and Google ADK. User's exact words: "implementa el plan con go google adk , que sea un proyecto repo desde cero". Standalone module `github.com/GhandyP/call-transcription-go` depending on `google.golang.org/adk/v2` (verified latest cached `v2.6.0`, which requires `go 1.26.6`) and `google.golang.org/genai` (verified cached `v1.74.0`); no dependency on the legacy private `internal/adkhelper` package nor on `github.com/GhandyP/adk-go-enterprise-cookbook` (verified: not publicly resolvable).
+- S3 (workflow): Continue the project under ODD. User's exact words: "luego continuar con crear en proyecto con odd".
+- S4 (repo name): user's exact answer: "call-transcription-go".
+- S5 (scope): user's exact answer: "Texto + adaptador STT" — this delivery covers the typed contract, deterministic Go validation, the ADK cleanup agent, the CLI, fixtures and tests, plus an STT adapter interface with an offline fake implementation. No real audio, no external STT service, no audio bytes retained.
+- S6 (license): user's exact answer: "MIT" — an MIT `LICENSE` file is part of this delivery.
+- S7 (goal, verbatim from the legacy README): "Clean and organize supplied transcript text while preserving speakers and timestamps, without claiming that audio has been transcribed."
+- S8 (contract, verbatim from the legacy README): "**Contract:** Define `CallInput{callID, audioRef?, segments[]}` -> `Transcript{segments[{id,speaker,start,end,text,confidence}], warnings[]}`."
+- S9 (ADK workflow, verbatim from the legacy README): "**ADK workflow:** Add an STT adapter before a transcript-cleanup agent, with segment schema and call session; keep a future `save_transcript` tool approval-gated."
+- S10 (domain boundary, verbatim from the legacy README): "**Domain boundary:** Add audio storage, Whisper/STT, speaker diarization, timestamp normalization, and transcript repository adapters." In-scope part for this delivery: timestamp normalization and the STT adapter boundary with an offline implementation. Audio storage, a diarization service and the transcript repository stay out of this slice.
+- S11 (fixtures and validation, verbatim from the legacy README): "**Fixtures and validation:** Cover overlaps, unknown speakers, gaps, low confidence, profanity policy, and out-of-order timestamps."
+- S12 (safety, verbatim from the legacy README): "**Safety:** Protect recordings and transcript access, retain raw audio only by policy, and require human review for low-confidence or sensitive calls."
+- S13 (done when, verbatim from the legacy README): "Every output segment retains a source ID, speaker, and valid time range." / "Low-confidence, overlapping, and unknown-speaker content is flagged." / "Transcript fixtures exercise ordering and redaction policies." / "Audio access and persistence follow retention rules and human review gates."
+- S14 (honesty): no Gemini API key is available in this environment (`GOOGLE_API_KEY` unset), so the model path is verified offline (instruction, output schema, parser, validation, injected model) and the README states that the live Gemini call was not executed. No check is claimed that was not observed.
+
+## Tasks
+
+| ID | Specs | Route | Status | Evidence |
+|---|---|---|---|---|
+| T1 | S1, S2, S3, S4, S6 | inline | pending | - |
+| T2 | S8, S13 | inline | pending | - |
+| T3 | S11, S12, S13 | delegated (writer A, background) | pending | - |
+| T4 | S5, S9, S10 | delegated (writer B, background) | pending | - |
+| T5 | S9, S14 | inline | pending | - |
+| T6 | S7, S9, S13 | inline | pending | - |
+| T7 | S2, S12, S14 | inline | pending | - |
+| T8 | S1..S14 | delegated (independent verifier) | pending | - |
+
+## Log
+
+- L1 (user request, verbatim): "explora este proyecto , crea un repo publico que la idea es hacerlo desde el inicio pero para que sea un repo dentro de mi portafolio en github , y luego continuar con crear en proyecto con odd , implementa el plan con go google adk , que sea un proyecto repo desde cero"
+- L2 (user answers, verbatim, in one batch): "call-transcription-go" (repository name), "Texto + adaptador STT" (S5 scope), "MIT" (S6 license).
+- L3 (exploration): `/home/ghandy/Documents/34-call-transcription` held only `README.md` (the case-34 source plan) and `main.go`. `main.go` imported the private `github.com/GhandyP/adk-go-enterprise-cookbook/internal/adkhelper`, which is not present locally and not publicly resolvable, so the prototype does not build here. The directory sits untracked inside the home-directory Git repository (`/home/ghandy/.git`), which has no commits, so the new project repository is initialized locally in place (same pattern as cases 04, 12, 21 and 32).
+- L4 (decision, stack): ADK Go v2 verified as `google.golang.org/adk/v2 v2.6.0` with `agent`, `agent/llmagent`, `model/gemini`, `runner` and `session` packages; its own `go.mod` requires `go 1.26.6` while the installed toolchain is `go1.26.4`, and cached toolchains go up to `go1.26.9`, so `GOTOOLCHAIN=auto` resolves it offline. `google.golang.org/adk v1.8.0` (used by `result-reranking-go`) is the older major and is not used here. The legacy README's "ADK Go v2.2.0" claim is stale and is not repeated.
+- L5 (decision, provenance): the legacy case files are preserved under `.legacy-prototype/` (a dot directory, which the Go tool ignores, so `go build ./...` never compiles the unusable legacy `main.go`): `README.legacy.md` is the source plan quoted by the specs, and `main.go` stays as the prototype that referenced the private helper.
+- L6 (delivery strategy): every chained-PR option assumes an existing repository with a PR flow; this is a brand-new single-author public repository, so the scaffold and each later work unit are committed and pushed directly to `main`.
+- L7 (decision, model boundary): everything that can be checked without credentials is a pure function (instruction, output schema, parser, validation, redaction, timestamp normalization); only `internal/agent` talks to a model, and the model handle is injectable so the whole layer is testable offline.
+- L8 (routing, T3/T4): both units fire the Writer rule's parallelism reason (two independent units, disjoint edit surfaces, each heavier than a subagent start) and are launched together in the background against the frozen contract from T2.
