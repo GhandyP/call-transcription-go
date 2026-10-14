@@ -1,0 +1,26 @@
+[
+  {
+    "id": "",
+    "speaker": "Agent",
+    "start": 0,
+    "end": 4,
+    "text": "Thanks for calling support.",
+    "confidence": 0.92
+  },
+  {
+    "id": "s7",
+    "speaker": "?",
+    "start": 30,
+    "end": 34,
+    "text": "Anything else I can help you with?",
+    "confidence": 0.88
+  },
+  {
+    "id": "",
+    "speaker": "Customer",
+    "start": 4,
+    "end": 12,
+    "text": "I need help with my bill.",
+    "confidence": 0.5
+  }
+]
