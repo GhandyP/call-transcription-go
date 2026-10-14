@@ -1,0 +1,21 @@
+{
+  "callID": "call-low-confidence",
+  "segments": [
+    {
+      "id": "s1",
+      "speaker": "Customer",
+      "start": 0,
+      "end": 4,
+      "text": "I need the premium plan with the annual discount.",
+      "confidence": 0.42
+    },
+    {
+      "id": "s2",
+      "speaker": "Agent",
+      "start": 4,
+      "end": 8,
+      "text": "Let me check that for you.",
+      "confidence": 0.92
+    }
+  ]
+}

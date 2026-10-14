@@ -1,0 +1,21 @@
+{
+  "callID": "call-gap",
+  "segments": [
+    {
+      "id": "s1",
+      "speaker": "Customer",
+      "start": 0,
+      "end": 5,
+      "text": "Hello?",
+      "confidence": 0.8
+    },
+    {
+      "id": "s2",
+      "speaker": "Customer",
+      "start": 95,
+      "end": 100,
+      "text": "Sorry, I was on mute.",
+      "confidence": 0.83
+    }
+  ]
+}

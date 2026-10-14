@@ -1,0 +1,29 @@
+{
+  "callID": "call-unknown-speaker",
+  "segments": [
+    {
+      "id": "s1",
+      "speaker": "",
+      "start": 0,
+      "end": 3,
+      "text": "Good morning.",
+      "confidence": 0.77
+    },
+    {
+      "id": "s2",
+      "speaker": "?",
+      "start": 3,
+      "end": 6,
+      "text": "Can you hear me?",
+      "confidence": 0.75
+    },
+    {
+      "id": "s3",
+      "speaker": "Agent",
+      "start": 6,
+      "end": 9,
+      "text": "I can hear you now.",
+      "confidence": 0.9
+    }
+  ]
+}
