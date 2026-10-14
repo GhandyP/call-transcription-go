@@ -27,10 +27,10 @@ Test runner: `gofmt -l .`, `go vet ./...`, `go build ./...`, `go test ./... -cou
 
 | ID | Specs | Route | Status | Evidence |
 |---|---|---|---|---|
-| T1 | S1, S2, S3, S4, S6 | inline | pending | - |
-| T2 | S8, S13 | inline | pending | - |
-| T3 | S11, S12, S13 | delegated (writer A, background) | pending | - |
-| T4 | S5, S9, S10 | delegated (writer B, background) | pending | - |
+| T1 | S1, S2, S3, S4, S6 | inline | done | `dc7e833` published at https://github.com/GhandyP/call-transcription-go (PUBLIC, branch main, topics go/google-adk/gemini/ai-agents/transcription), see L9 |
+| T2 | S8, S13 | inline | done | `528d194`, 33 asserts PASS, see L10 |
+| T3 | S11, S12, S13 | delegated (writer A, background) | in flight | - |
+| T4 | S5, S9, S10 | delegated (writer B, background) | in flight | - |
 | T5 | S9, S14 | inline | pending | - |
 | T6 | S7, S9, S13 | inline | pending | - |
 | T7 | S2, S12, S14 | inline | pending | - |
@@ -46,3 +46,5 @@ Test runner: `gofmt -l .`, `go vet ./...`, `go build ./...`, `go test ./... -cou
 - L6 (delivery strategy): every chained-PR option assumes an existing repository with a PR flow; this is a brand-new single-author public repository, so the scaffold and each later work unit are committed and pushed directly to `main`.
 - L7 (decision, model boundary): everything that can be checked without credentials is a pure function (instruction, output schema, parser, validation, redaction, timestamp normalization); only `internal/agent` talks to a model, and the model handle is injectable so the whole layer is testable offline.
 - L8 (routing, T3/T4): both units fire the Writer rule's parallelism reason (two independent units, disjoint edit surfaces, each heavier than a subagent start) and are launched together in the background against the frozen contract from T2.
+- L9 (evidence, T1): `git init -b main` inside the case directory (the directory was untracked inside the commit-less home Git repository). `dc7e833` "chore: bootstrap the call-transcription-go module" tracks `.gitignore`, `LICENSE` (MIT), `README.md`, `go.mod`, `go.sum`, `main.go`, `odd/tasks/call-transcription-go.md`, `.legacy-prototype/**` (10 files, 368 insertions). Checks at that commit: `gofmt -l .` empty, `go vet ./...` clean, `go build ./...` clean, `go test ./...` ok. `gh repo create` published `GhandyP/call-transcription-go` as PUBLIC with `main` tracking `origin/main`, and `gh repo edit` added the topics go, google-adk, gemini, ai-agents and transcription. `gh repo view` confirms `visibility: PUBLIC`, `defaultBranchRef: main`.
+- L10 (evidence, T2): RED was observed first — `go test ./internal/transcript/` answered `no non-test Go files in internal/transcript`, so the tests were written before the package. After implementation (`contract.go`, `normalize.go`, `validate.go`) the package reports `ok` with 33 passing asserts, including the fixture-driven cases for overlaps, gaps, unknown speakers, low confidence and out-of-order timestamps, the nine-row invalid-input table, the nine-row model-drift table and the determinism check. `gofmt -l .` empty, `go vet ./...` clean, `go build ./...` clean. Committed as `528d194` (10 files, 1099 insertions). The exported `NewWarning`, `SortWarnings` and `ReviewRequired` were added to the contract before it was frozen, so every later package applies one review policy and one finding order.
