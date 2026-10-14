@@ -41,8 +41,10 @@ func clean(in transcript.CallInput, opts Options, rewrite textRewriter) (transcr
 	cleaned := transcript.Transcript{
 		CallID:   normalized.CallID,
 		AudioRef: normalized.AudioRef,
-		Segments: append([]transcript.Segment(nil), normalized.Segments...),
-		Warnings: append([]transcript.Warning(nil), normalized.Warnings...),
+		// Non-nil empty slices, so a call with no finding and no segment still
+		// serializes the arrays the contract promises instead of null.
+		Segments: append([]transcript.Segment{}, normalized.Segments...),
+		Warnings: append([]transcript.Warning{}, normalized.Warnings...),
 	}
 
 	for i := range cleaned.Segments {

@@ -81,6 +81,13 @@ func Normalize(in CallInput, opts Options) (Transcript, error) {
 
 	SortWarnings(warnings)
 
+	// The contract says findings are an array: a clean call serializes [] and
+	// never null, so a consumer never has to distinguish "no findings" from
+	// "the field is absent".
+	if warnings == nil {
+		warnings = []Warning{}
+	}
+
 	return Transcript{
 		CallID:         in.CallID,
 		AudioRef:       in.AudioRef,
