@@ -58,10 +58,14 @@ printf '%s' '{"callID":"call-4419","audioRef":"s3://recordings/call-4419.wav","s
 | --- | --- |
 | `-baseline` | Run the deterministic path only and never call a model. |
 | `-model string` | Gemini model for the cleanup agent (default `gemini-flash-latest`, also settable through `ADK_MODEL`). |
-| `-stt-fixture string` | Offline STT fixture used when the input carries an `audioRef` and no segments. |
+| `-stt-fixture string` | Offline STT fixture; valid only for an input with an `audioRef` and no segments. The supplied path must be non-empty. |
 
-`-baseline` combined with an explicit `-model` is a **usage error** rather than a
-silently ignored flag: the caller has to know which path ran. Use `-` as the
+`-baseline` combined with an explicitly supplied `-model` is a **usage error**,
+even when the model value is empty, rather than a silently ignored flag. A
+supplied `-stt-fixture` is also a usage error if its path is empty, the input has
+no `audioRef`, or the input already has segments; these invalid requests are
+rejected before the fixture is opened. An audio-only input without a supplied
+fixture retains the missing-fixture diagnostic and exits `1`. Use `-` as the
 input path to read the document from standard input.
 
 ### Exit codes
@@ -69,8 +73,8 @@ input path to read the document from standard input.
 | Code | Meaning |
 | --- | --- |
 | `0` | A transcript was produced. `reviewRequired` tells you whether a human must look at it. |
-| `1` | The input or the run failed: unusable document, missing credential, rejected model answer. |
-| `2` | Usage error: unknown flag, wrong number of arguments, contradictory flags. |
+| `1` | The input or the run failed: unusable document, missing credential, rejected model answer, or an audio-only input without an STT fixture. |
+| `2` | Usage error: unknown flag, wrong number of arguments, contradictory flags, or an explicitly supplied STT fixture that is empty or unusable for the input. |
 
 A transcript that needs review is **data, not a failure**, which is why the
 review gate never changes the exit code.
@@ -148,10 +152,11 @@ confidence outside `[0,1]`, a present but blank `audioRef`.
   interface, the only supported policy is keeping nothing, and the command
   refuses a transcriber that claims otherwise. There is no code path in this
   repository that opens, downloads, copies or stores audio.
-- The model sees the least it can work with: the prompt carries `callID`, segment
-  ids and cleaned text. Speaker labels, timestamps, confidences, findings and the
-  audio reference never leave the process, and the output schema does not offer
-  the model a way to return them.
+- The model sees only segment ids and cleaned text. The call ID, speaker labels,
+  timestamps, confidences, findings and audio reference stay local. Model answers
+  must preserve each segment's exact ordered redaction-placeholder sequence;
+  removed, changed, duplicated or moved markers cause rejection, not repair.
+  The output schema offers only segment ids and text.
 - Redaction is defence in depth, **not a seal**: a rule-based filter cannot
   recognise every possible secret, so sensitive material should not be pasted
   into a transcript in the first place. Verify a document before you share it.
@@ -173,8 +178,9 @@ go build ./...      # clean
 go test ./... -count=1
 ```
 
-Observed at the commit that introduced the examples: **94 passing assertions, 0
-failures** across the five packages. The tests cover the contract rules and their
+Observed at the commit that introduced the examples: **94 passing test/subtest
+result entries, 0 failures** across the five packages (not a count of individual
+assertions). The tests cover the contract rules and their
 fixtures (overlaps, gaps, unknown speakers, low confidence, out-of-order
 timestamps), the nine-row model-drift table, the redaction leak check, the
 profanity word-boundary rule, the STT boundary and its offline transcriber, the

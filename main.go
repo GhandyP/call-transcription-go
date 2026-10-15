@@ -49,10 +49,12 @@ the document from standard input.
 Flags:
   -baseline            run the deterministic path only and never call a model
   -model string        Gemini model for the cleanup agent (default ` + agent.DefaultModel + `)
-  -stt-fixture string  offline STT fixture used when the input carries an audioRef and no segments
+  -stt-fixture string  offline fixture; requires an audioRef and no input segments
 
 The command never reads audio and never writes to disk. With -baseline, and for
-a call that carries no segments, no model is called at all.
+a call that carries no segments, no model is called at all. A supplied
+-stt-fixture must be non-empty and is valid only when the input has an audioRef
+and no segments.
 `
 
 func main() {
@@ -67,11 +69,20 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	baseline := flags.Bool("baseline", false, "run the deterministic path only and never call a model")
 	modelName := flags.String("model", "", "Gemini model name for the cleanup agent")
-	fixture := flags.String("stt-fixture", "", "offline STT fixture for an input that carries an audioRef and no segments")
+	fixture := flags.String("stt-fixture", "", "offline fixture; requires input with audioRef and no segments")
 
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
 	}
+	var modelSpecified, fixtureSpecified bool
+	flags.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "model":
+			modelSpecified = true
+		case "stt-fixture":
+			fixtureSpecified = true
+		}
+	})
 	if flags.NArg() != 1 {
 		fmt.Fprintf(stderr, "call-transcription-go: exactly one input document is required, got %d\n\n", flags.NArg())
 		fmt.Fprint(stderr, usage)
@@ -79,8 +90,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	// -model next to -baseline is a contradiction, not something to ignore
 	// quietly: the caller has to know which path ran.
-	if *baseline && *modelName != "" {
+	if *baseline && modelSpecified {
 		fmt.Fprintln(stderr, "call-transcription-go: -baseline never calls a model, so -model cannot be combined with it")
+		fmt.Fprint(stderr, usage)
+		return exitUsage
+	}
+	if fixtureSpecified && *fixture == "" {
+		fmt.Fprintln(stderr, "call-transcription-go: -stt-fixture requires a non-empty path")
 		fmt.Fprint(stderr, usage)
 		return exitUsage
 	}
@@ -91,12 +107,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return exitFailure
 	}
 
+	if fixtureSpecified && (input.AudioRef == nil || len(input.Segments) > 0) {
+		fmt.Fprintln(stderr, "call-transcription-go: -stt-fixture requires an input with audioRef and no segments")
+		fmt.Fprint(stderr, usage)
+		return exitUsage
+	}
+
 	ctx := context.Background()
 
 	// An input that references a recording and carries no segments needs a
 	// transcription step before anything else can happen.
 	if len(input.Segments) == 0 && input.AudioRef != nil {
-		if *fixture == "" {
+		if !fixtureSpecified {
 			fmt.Fprintf(stderr, "call-transcription-go: call %q references %q but carries no segments, and this build ships an offline transcriber only; pass -stt-fixture <path> with a JSON segment fixture\n",
 				input.CallID, *input.AudioRef)
 			return exitFailure
