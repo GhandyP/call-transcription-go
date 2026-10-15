@@ -48,7 +48,8 @@ func NewFakeFromFile(path string) (*Fake, error) {
 	return NewFakeFromJSON(data)
 }
 
-// Transcribe returns the fixture segments.
+// Transcribe returns the fixture segments, or the context error with no result
+// when the request has already been cancelled or its deadline has expired.
 //
 // A segment that arrived without an identifier gets one derived from its
 // position in the fixture ("s1" for the first, "s2" for the second, and so on),
@@ -56,7 +57,10 @@ func NewFakeFromFile(path string) (*Fake, error) {
 // already carries an identifier keeps it exactly. Nothing else is changed: the
 // order, the speakers, the ranges, the text and the confidences are handed back
 // as they arrived.
-func (f *Fake) Transcribe(_ context.Context, req Request) (Result, error) {
+func (f *Fake) Transcribe(ctx context.Context, req Request) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
 	if err := req.Validate(); err != nil {
 		return Result{}, err
 	}

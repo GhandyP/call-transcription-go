@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/GhandyP/call-transcription-go/adapters/stt"
 	"github.com/GhandyP/call-transcription-go/internal/transcript"
@@ -61,6 +62,48 @@ func TestFakeStampsStableIDsAndChangesNothingElse(t *testing.T) {
 	}
 	if got, want := first.Provider, stt.FakeProvider; got != want {
 		t.Errorf("Provider = %q, want %q", got, want)
+	}
+}
+
+func TestFakeHonorsContextCancellation(t *testing.T) {
+	want := transcript.Segment{ID: "s1", Speaker: "Agent", Start: 0, End: 1, Text: "Hi.", Confidence: 0.9}
+	for _, tt := range []struct {
+		name string
+		ctx  func() (context.Context, context.CancelFunc)
+		err  error
+	}{
+		{"cancelled", func() (context.Context, context.CancelFunc) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			return ctx, cancel
+		}, context.Canceled},
+		{"expired deadline", func() (context.Context, context.CancelFunc) {
+			return context.WithDeadline(context.Background(), time.Unix(0, 0))
+		}, context.DeadlineExceeded},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			source := []transcript.Segment{want}
+			fake := stt.NewFake(source)
+			req := stt.Request{CallID: "call-1", AudioRef: "fixture://audio"}
+			originalReq := req
+			ctx, cancel := tt.ctx()
+			defer cancel()
+			got, err := fake.Transcribe(ctx, req)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("Transcribe() error = %v, want %v", err, tt.err)
+			}
+			if got.Provider != "" || len(got.Segments) != 0 {
+				t.Errorf("Transcribe() returned partial data on cancellation: %+v", got)
+			}
+			if req != originalReq || source[0] != want {
+				t.Fatal("Transcribe() mutated the source request or segments")
+			}
+			// A rejected call must not consume or change the offline fixture.
+			next, err := fake.Transcribe(context.Background(), req)
+			if err != nil || next.Provider != stt.FakeProvider || len(next.Segments) != 1 || next.Segments[0] != want {
+				t.Fatalf("next Transcribe() = (%+v, %v), want the untouched fixture", next, err)
+			}
+		})
 	}
 }
 
