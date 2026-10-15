@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/GhandyP/call-transcription-go/internal/transcript"
 )
@@ -21,6 +22,9 @@ var (
 	// ErrDuplicateSegmentText reports a source segment the answer returned more
 	// than once.
 	ErrDuplicateSegmentText = errors.New("the agent answer repeats a source segment")
+	// ErrRedactionPlaceholderDrift reports an answer that changed a segment's
+	// ordered redaction-placeholder sequence.
+	ErrRedactionPlaceholderDrift = errors.New("the agent answer changed redaction placeholders")
 )
 
 // answerDocument is the shape OutputSchema asks for.
@@ -33,13 +37,17 @@ type answerSegment struct {
 	Text string `json:"text"`
 }
 
+var redactionPlaceholderPattern = regexp.MustCompile(`\[redacted:[^\]]+\]`)
+
 // ParseAnswer turns a model answer into a validated transcript.
 //
 // The answer may reorder its entries, because identity is what matters: the
 // result is built from the reference segments, never from the order the model
-// chose. Text is the only field the answer can influence. Everything else is
-// checked with transcript.ValidateOutput, so an answer that drops, invents,
-// repeats or blanks a segment is rejected instead of repaired.
+// chose. Text is the only field the answer can influence, and each segment's
+// ordered [redacted:...] marker sequence must remain unchanged while wording
+// around it may be cleaned. Everything else is checked with
+// transcript.ValidateOutput, so an answer that drops, invents, repeats or
+// blanks a segment is rejected instead of repaired.
 func ParseAnswer(reference transcript.Transcript, raw []byte) (transcript.Transcript, error) {
 	if len(reference.Segments) == 0 {
 		return reference, nil
@@ -65,16 +73,24 @@ func ParseAnswer(reference transcript.Transcript, raw []byte) (transcript.Transc
 			return transcript.Transcript{}, fmt.Errorf("%w: %q", ErrUnknownSegmentID, id)
 		}
 	}
+	for _, source := range reference.Segments {
+		if _, ok := texts[source.ID]; !ok {
+			return transcript.Transcript{}, fmt.Errorf("%w: no text for segment %q", ErrMissingSegmentText, source.ID)
+		}
+	}
+	for _, source := range reference.Segments {
+		answerMarkers := redactionPlaceholders(texts[source.ID])
+		sourceMarkers := redactionPlaceholders(source.Text)
+		if !sameStrings(sourceMarkers, answerMarkers) {
+			return transcript.Transcript{}, fmt.Errorf("%w: segment %q has %q, want %q", ErrRedactionPlaceholderDrift, source.ID, answerMarkers, sourceMarkers)
+		}
+	}
 
 	out := reference
 	out.Segments = make([]transcript.Segment, len(reference.Segments))
 	copy(out.Segments, reference.Segments)
 	for i, source := range reference.Segments {
-		text, ok := texts[source.ID]
-		if !ok {
-			return transcript.Transcript{}, fmt.Errorf("%w: no text for segment %q", ErrMissingSegmentText, source.ID)
-		}
-		out.Segments[i].Text = text
+		out.Segments[i].Text = texts[source.ID]
 	}
 
 	if err := transcript.ValidateOutput(referenceInput(reference), out); err != nil {
@@ -91,6 +107,24 @@ func hasSegment(reference transcript.Transcript, id string) bool {
 		}
 	}
 	return false
+}
+
+// redactionPlaceholders returns recognized placeholder markers in their text
+// order, preserving their exact spellings for the drift comparison.
+func redactionPlaceholders(text string) []string {
+	return redactionPlaceholderPattern.FindAllString(text, -1)
+}
+
+func sameStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // referenceInput rebuilds the input document a reference transcript came from,

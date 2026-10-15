@@ -26,8 +26,8 @@ Rules:
 - When a source segment has no text, return it with empty text.
 - Answer with a single JSON object, and with nothing else.`
 
-// Instruction returns the agent instruction. It pins the text-only boundary and
-// the identity rule the parser enforces.
+// Instruction returns the agent instruction. It pins the text-only boundary,
+// segment identity and placeholder rules that ParseAnswer enforces.
 func Instruction() string { return instruction }
 
 // OutputSchema describes the JSON object the model must return.
@@ -63,11 +63,10 @@ func OutputSchema() *genai.Schema {
 	}
 }
 
-// promptDocument is what the model receives: identity and text, and nothing
-// else. Speakers, timestamps, confidences, warnings and the audio reference
-// never leave the process.
+// promptDocument is what the model receives: segment identity and text, and
+// nothing else. The call ID, speakers, timestamps, confidences, warnings and
+// audio reference never leave the process.
 type promptDocument struct {
-	CallID   string          `json:"callID"`
 	Segments []promptSegment `json:"segments"`
 }
 
@@ -76,10 +75,10 @@ type promptSegment struct {
 	Text string `json:"text"`
 }
 
-// Prompt renders the document the model is asked about.
+// Prompt renders only segment IDs and text for the model; the local call ID is
+// deliberately omitted.
 func Prompt(t transcript.Transcript) (string, error) {
 	document := promptDocument{
-		CallID:   t.CallID,
 		Segments: make([]promptSegment, 0, len(t.Segments)),
 	}
 	for _, segment := range t.Segments {
